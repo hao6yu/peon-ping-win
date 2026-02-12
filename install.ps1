@@ -141,7 +141,8 @@ foreach ($event in $hookEvents) {
 }
 
 # Write settings
-$settings | ConvertTo-Json -Depth 10 | Out-File -FilePath $SETTINGS -Force
+$jsonOutput = $settings | ConvertTo-Json -Depth 10
+$jsonOutput | Out-File -FilePath "$env:USERPROFILE\.claude\settings.json" -Force
 
 Write-Host ""
 Write-Host "=== Installation complete! ===" -ForegroundColor Green
