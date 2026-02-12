@@ -122,10 +122,12 @@ if (Test-Path $SETTINGS) {
 # Format: { "hooks": { "EventName": [{ "hooks": [{ "type": "command", "command": "..." }] }] } }
 
 $hookEntry = @{
+    matcher = ""
     hooks = @(
         @{
             type = "command"
             command = $hookCommand
+            timeout = 10
         }
     )
 }
@@ -135,6 +137,7 @@ $hooksConfig = @{
     Stop = @($hookEntry)
     Notification = @($hookEntry)
     UserPromptSubmit = @($hookEntry)
+    PermissionRequest = @($hookEntry)
 }
 
 # Update or add hooks property
