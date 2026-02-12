@@ -110,7 +110,7 @@ if ($PSBoundParameters.ContainsKey('pack')) {
     }
     
     $cfg | Add-Member -NotePropertyName "active_pack" -NotePropertyValue $pack -Force
-    $cfg | ConvertTo-Json -Depth 10 | Set-Content $CONFIG -Encoding UTF8
+    $cfg | ConvertTo-Json -Depth 10 | Set-Content $CONFIG
     
     $manifestPath = "$PEON_DIR\packs\$pack\manifest.json"
     $display = $pack
@@ -175,7 +175,7 @@ if ($permMode -and $permMode -in $agentModes) {
     if ($sessionId -notin $agentSessions) {
         $agentSessions += $sessionId
         $state.agent_sessions = $agentSessions
-        $state | ConvertTo-Json -Depth 10 | Set-Content $STATE -Encoding UTF8
+        $state | ConvertTo-Json -Depth 10 | Set-Content $STATE
     }
     exit 0
 }
@@ -303,7 +303,7 @@ if ($category -and !$isPaused) {
 
 # Save state
 try {
-    $state | ConvertTo-Json -Depth 10 | Set-Content $STATE -Encoding UTF8
+    $state | ConvertTo-Json -Depth 10 | Set-Content $STATE
 } catch {}
 
 # Play sound (async)
