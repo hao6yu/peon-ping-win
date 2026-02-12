@@ -141,8 +141,7 @@ foreach ($event in $hookEvents) {
 }
 
 # Write settings
-$settingsJson = $settings | ConvertTo-Json -Depth 10
-[System.IO.File]::WriteAllText($SETTINGS, $settingsJson)
+$settings | ConvertTo-Json -Depth 10 | Out-File -FilePath $SETTINGS -Force
 
 Write-Host ""
 Write-Host "=== Installation complete! ===" -ForegroundColor Green
