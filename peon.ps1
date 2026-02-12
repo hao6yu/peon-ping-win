@@ -318,27 +318,24 @@ try {
     $state | ConvertTo-Json -Depth 10 | Set-Content $STATE
 } catch {}
 
-# Play sound (async)
+# Play sound (async - use Start-Process so it survives parent exit)
 if ($soundFile -and (Test-Path $soundFile)) {
     $volume = $cfg.volume
-    $job = Start-Job -ScriptBlock {
-        param($file, $vol)
-        Add-Type -AssemblyName PresentationCore
-        $player = New-Object System.Windows.Media.MediaPlayer
-        $player.Open([Uri]::new($file))
-        $player.Volume = $vol
-        Start-Sleep -Milliseconds 300
-        $player.Play()
-        Start-Sleep -Seconds 4
-        $player.Close()
-    } -ArgumentList $soundFile, $volume
-    
-    # Don't wait for job, let it run in background
-    # Cleanup old jobs
-    Get-Job -State Completed | Remove-Job -Force -ErrorAction SilentlyContinue
+    $playScript = @"
+Add-Type -AssemblyName PresentationCore
+`$player = New-Object System.Windows.Media.MediaPlayer
+`$player.Open([Uri]::new('$($soundFile -replace "'","''")'))
+`$player.Volume = $volume
+Start-Sleep -Milliseconds 300
+`$player.Play()
+Start-Sleep -Seconds 4
+`$player.Close()
+"@
+    $encodedCmd = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($playScript))
+    Start-Process -WindowStyle Hidden powershell.exe -ArgumentList "-NoProfile", "-EncodedCommand", $encodedCmd
 }
 
-# Send notification (async)
+# Send notification (async - use Start-Process so it survives parent exit)
 if ($notify -and $msg) {
     $rgb = switch ($notifyColor) {
         "blue"   { @{ r=30; g=80; b=180 } }
@@ -346,38 +343,39 @@ if ($notify -and $msg) {
         default  { @{ r=180; g=0; b=0 } }
     }
     
-    $notifyJob = Start-Job -ScriptBlock {
-        param($message, $r, $g, $b)
-        Add-Type -AssemblyName System.Windows.Forms
-        Add-Type -AssemblyName System.Drawing
-        
-        $form = New-Object System.Windows.Forms.Form
-        $form.FormBorderStyle = 'None'
-        $form.BackColor = [System.Drawing.Color]::FromArgb($r, $g, $b)
-        $form.Size = New-Object System.Drawing.Size(450, 70)
-        $form.TopMost = $true
-        $form.ShowInTaskbar = $false
-        $form.StartPosition = 'Manual'
-        
-        $screen = [System.Windows.Forms.Screen]::PrimaryScreen
-        $form.Location = New-Object System.Drawing.Point(
-            ($screen.WorkingArea.X + ($screen.WorkingArea.Width - 450) / 2),
-            ($screen.WorkingArea.Y + 50)
-        )
-        
-        $label = New-Object System.Windows.Forms.Label
-        $label.Text = $message
-        $label.ForeColor = [System.Drawing.Color]::White
-        $label.Font = New-Object System.Drawing.Font('Segoe UI', 14, [System.Drawing.FontStyle]::Bold)
-        $label.TextAlign = 'MiddleCenter'
-        $label.Dock = 'Fill'
-        $form.Controls.Add($label)
-        
-        $form.Show()
-        $form.Refresh()
-        Start-Sleep -Seconds 4
-        $form.Close()
-    } -ArgumentList $msg, $rgb.r, $rgb.g, $rgb.b
+    $notifyScript = @"
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+
+`$form = New-Object System.Windows.Forms.Form
+`$form.FormBorderStyle = 'None'
+`$form.BackColor = [System.Drawing.Color]::FromArgb($($rgb.r), $($rgb.g), $($rgb.b))
+`$form.Size = New-Object System.Drawing.Size(450, 70)
+`$form.TopMost = `$true
+`$form.ShowInTaskbar = `$false
+`$form.StartPosition = 'Manual'
+
+`$screen = [System.Windows.Forms.Screen]::PrimaryScreen
+`$form.Location = New-Object System.Drawing.Point(
+    (`$screen.WorkingArea.X + (`$screen.WorkingArea.Width - 450) / 2),
+    (`$screen.WorkingArea.Y + 50)
+)
+
+`$label = New-Object System.Windows.Forms.Label
+`$label.Text = '$($msg -replace "'","''")'
+`$label.ForeColor = [System.Drawing.Color]::White
+`$label.Font = New-Object System.Drawing.Font('Segoe UI', 14, [System.Drawing.FontStyle]::Bold)
+`$label.TextAlign = 'MiddleCenter'
+`$label.Dock = 'Fill'
+`$form.Controls.Add(`$label)
+
+`$form.Show()
+`$form.Refresh()
+Start-Sleep -Seconds 4
+`$form.Close()
+"@
+    $encodedCmd = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($notifyScript))
+    Start-Process -WindowStyle Hidden powershell.exe -ArgumentList "-NoProfile", "-EncodedCommand", $encodedCmd
 }
 
 # Update terminal title
