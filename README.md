@@ -1,6 +1,6 @@
 # peon-ping
 
-![macOS](https://img.shields.io/badge/macOS-blue) ![WSL2](https://img.shields.io/badge/WSL2-blue)
+![macOS](https://img.shields.io/badge/macOS-blue) ![WSL2](https://img.shields.io/badge/WSL2-blue) ![Windows](https://img.shields.io/badge/Windows-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Claude Code](https://img.shields.io/badge/Claude_Code-hook-ffab01)
 
@@ -12,11 +12,19 @@ Claude Code doesn't notify you when it finishes or needs permission. You tab awa
 
 ## Install
 
+### macOS / WSL2
+
 ```bash
-curl -fsSL https://raw.githubusercontent.com/tonyyont/peon-ping/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/hao6yu/peon-ping-win/main/install.sh | bash
 ```
 
-One command. Takes 10 seconds. macOS and WSL2 (Windows). Re-run to update (sounds and config preserved).
+### Windows (Native - No WSL Required)
+
+```powershell
+iwr -useb https://raw.githubusercontent.com/hao6yu/peon-ping-win/main/install.ps1 | iex
+```
+
+One command. Takes 10 seconds. Re-run to update (sounds and config preserved).
 
 ## What you'll hear
 
