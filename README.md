@@ -10,6 +10,21 @@ Claude Code doesn't notify you when it finishes or needs permission. You tab awa
 
 **See it in action** &rarr; [peon-ping.vercel.app](https://peon-ping.vercel.app/)
 
+## 🔊 Hear the Sounds
+
+Click to preview (opens in browser):
+
+| | Sound | Line |
+|:---:|---|---|
+| [▶️](https://peon-ping.vercel.app/audio/PeonReady1.ogg) | Greeting | *"Ready to work?"* |
+| [▶️](https://peon-ping.vercel.app/audio/PeonYes3.ogg) | Acknowledge | *"Work, work."* |
+| [▶️](https://peon-ping.vercel.app/audio/PeonYes4.ogg) | Acknowledge | *"Okie dokie."* |
+| [▶️](https://peon-ping.vercel.app/audio/PeonWhat3.ogg) | Permission | *"Something need doing?"* |
+| [▶️](https://peon-ping.vercel.app/audio/PeonWhat4.ogg) | Permission | *"What you want?"* |
+| [▶️](https://peon-ping.vercel.app/audio/PeonAngry4.ogg) | Annoyed | *"Me not that kind of orc!"* |
+
+**[🎧 Full interactive demo →](https://peon-ping.vercel.app/#sounds)**
+
 ## Install
 
 ### macOS / WSL2
