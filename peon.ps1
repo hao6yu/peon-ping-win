@@ -147,11 +147,15 @@ if (Test-Path $CONFIG) {
 
 if ($cfg.enabled -eq $false) { exit 0 }
 
-# Load state
+# Load state (PS 5.1 compatible - no -AsHashtable)
 $state = @{}
 if (Test-Path $STATE) {
     try {
-        $state = Get-Content $STATE -Raw | ConvertFrom-Json -AsHashtable
+        $stateObj = Get-Content $STATE -Raw | ConvertFrom-Json
+        # Convert PSObject to hashtable manually for PS 5.1 compatibility
+        $stateObj.PSObject.Properties | ForEach-Object {
+            $state[$_.Name] = $_.Value
+        }
     } catch {
         $state = @{}
     }
@@ -167,14 +171,14 @@ $permMode = $eventData.permission_mode
 # Agent detection - skip delegate/agent sessions
 $agentModes = @("delegate")
 $agentSessions = @()
-if ($state.ContainsKey("agent_sessions")) {
-    $agentSessions = @($state.agent_sessions)
+if ($state["agent_sessions"]) {
+    $agentSessions = @($state["agent_sessions"])
 }
 
 if ($permMode -and $permMode -in $agentModes) {
     if ($sessionId -notin $agentSessions) {
         $agentSessions += $sessionId
-        $state.agent_sessions = $agentSessions
+        $state["agent_sessions"] = $agentSessions
         $state | ConvertTo-Json -Depth 10 | Set-Content $STATE
     }
     exit 0
@@ -204,17 +208,20 @@ switch ($event) {
         # Annoyed detection
         $catEnabled = if ($cfg.categories.annoyed -eq $false) { $false } else { $true }
         if ($catEnabled) {
-            $now = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+            $now = [int][double]::Parse((Get-Date -UFormat %s))
             $window = $cfg.annoyed_window_seconds
             $threshold = $cfg.annoyed_threshold
             
-            if (!$state.ContainsKey("prompt_timestamps")) { $state.prompt_timestamps = @{} }
+            if (-not $state["prompt_timestamps"]) { $state["prompt_timestamps"] = @{} }
+            $pts = $state["prompt_timestamps"]
+            if ($pts -isnot [hashtable]) { $pts = @{}; $state["prompt_timestamps"] = $pts }
+            
             $ts = @()
-            if ($state.prompt_timestamps.ContainsKey($sessionId)) {
-                $ts = @($state.prompt_timestamps[$sessionId] | Where-Object { ($now - $_) -lt $window })
+            if ($pts[$sessionId]) {
+                $ts = @($pts[$sessionId] | Where-Object { ($now - $_) -lt $window })
             }
             $ts += $now
-            $state.prompt_timestamps[$sessionId] = $ts
+            $pts[$sessionId] = $ts
             
             if ($ts.Count -ge $threshold) {
                 $category = "annoyed"
@@ -280,10 +287,16 @@ if ($category -and !$isPaused) {
             if ($sounds -and $sounds.Count -gt 0) {
                 # Avoid repeating last sound
                 $lastPlayed = @{}
-                if ($state.ContainsKey("last_played")) {
-                    $lastPlayed = $state.last_played
+                if ($state["last_played"]) {
+                    # Convert PSObject to hashtable if needed
+                    $lp = $state["last_played"]
+                    if ($lp -is [hashtable]) {
+                        $lastPlayed = $lp
+                    } else {
+                        $lp.PSObject.Properties | ForEach-Object { $lastPlayed[$_.Name] = $_.Value }
+                    }
                 }
-                $lastFile = if ($lastPlayed.ContainsKey($category)) { $lastPlayed[$category] } else { "" }
+                $lastFile = if ($lastPlayed[$category]) { $lastPlayed[$category] } else { "" }
                 
                 $candidates = $sounds
                 if ($sounds.Count -gt 1) {
@@ -293,9 +306,8 @@ if ($category -and !$isPaused) {
                 $pick = $candidates | Get-Random
                 $soundFile = "$packDir\sounds\$($pick.file)"
                 
-                if (!$lastPlayed) { $lastPlayed = @{} }
                 $lastPlayed[$category] = $pick.file
-                $state.last_played = $lastPlayed
+                $state["last_played"] = $lastPlayed
             }
         } catch {}
     }
