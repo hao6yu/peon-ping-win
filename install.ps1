@@ -115,29 +115,39 @@ $hookCommand = "powershell.exe -ExecutionPolicy Bypass -NoProfile -File `"$INSTA
 if (Test-Path $SETTINGS) {
     $settings = Get-Content $SETTINGS -Raw | ConvertFrom-Json
 } else {
-    $settings = @{}
+    $settings = [PSCustomObject]@{}
 }
 
-# Ensure hooks array exists
-if (!$settings.hooks) {
-    $settings | Add-Member -NotePropertyName "hooks" -NotePropertyValue @() -Force
+# New Claude Code hooks format (object with event keys, not array)
+# Format: { "hooks": { "EventName": [{ "hooks": [{ "type": "command", "command": "..." }] }] } }
+
+$hookEntry = @{
+    hooks = @(
+        @{
+            type = "command"
+            command = $hookCommand
+        }
+    )
 }
 
-# Remove old peon-ping hooks
-$settings.hooks = @($settings.hooks | Where-Object { 
-    $_.event -ne "SessionStart" -and 
-    $_.event -ne "Stop" -and 
-    $_.event -ne "Notification" -and
-    $_.event -ne "UserPromptSubmit"
-})
+$hooksConfig = @{
+    SessionStart = @($hookEntry)
+    Stop = @($hookEntry)
+    Notification = @($hookEntry)
+    UserPromptSubmit = @($hookEntry)
+}
 
-# Add new hooks
-$hookEvents = @("SessionStart", "Stop", "Notification", "UserPromptSubmit")
-foreach ($event in $hookEvents) {
-    $settings.hooks += @{
-        event = $event
-        command = $hookCommand
+# Update or add hooks property
+if ($settings.hooks) {
+    # Merge with existing hooks
+    $existingHooks = @{}
+    $settings.hooks.PSObject.Properties | ForEach-Object { $existingHooks[$_.Name] = $_.Value }
+    foreach ($key in $hooksConfig.Keys) {
+        $existingHooks[$key] = $hooksConfig[$key]
     }
+    $settings.hooks = [PSCustomObject]$existingHooks
+} else {
+    $settings | Add-Member -NotePropertyName "hooks" -NotePropertyValue ([PSCustomObject]$hooksConfig) -Force
 }
 
 # Write settings
